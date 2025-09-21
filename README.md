@@ -31,11 +31,8 @@ Currently, the text color is always white, which does not adapt well to lighter 
 
 ## 计划 | Roadmap
 
-- [ ] 组件适配较浅的主题色  
-- [ ] 更多组件  
-
-- [ ] Adapt components to lighter theme colors  
-- [ ] Add more components  
+- [ ] Adapt components to lighter theme colors 组件适配较浅的主题色  
+- [ ] Add more components 更多组件  
 
 ---
 
