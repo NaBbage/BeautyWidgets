@@ -9,6 +9,7 @@ class BeautyLineEdit : public QLineEdit {
     Q_PROPERTY(QColor  bgColor READ bgColor WRITE setBgColor)
     Q_PROPERTY(qreal   scale   READ scale   WRITE setScale)
     Q_PROPERTY(QPointF offset  READ offset  WRITE setOffset)
+    Q_PROPERTY(qreal glowAlpha READ glowAlpha WRITE setGlowAlpha)
 
 public:
     explicit BeautyLineEdit(QWidget *parent = nullptr);
@@ -38,6 +39,13 @@ protected:
 private:
     void animateColor(const QColor &to);
     void animateScale(qreal to);
+    qreal glowAlpha() const { return m_glowAlpha; }
+        void setGlowAlpha(qreal alpha) {
+            if (!qFuzzyCompare(m_glowAlpha, alpha)) {
+                m_glowAlpha = alpha;
+                update();
+            }
+        }
 
 private:
     QColor  m_themeColor;
