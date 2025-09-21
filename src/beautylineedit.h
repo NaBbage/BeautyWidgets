@@ -23,8 +23,8 @@ private:
     void    setScale(qreal s);
     QPointF offset() const { return m_offset; }
     void    setOffset(const QPointF &o);
-    QPointF m_cursorPos { -1000, -1000 }; // 默认远离，初始不画
-    qreal   m_glowAlpha { 0.0 };          // 光圈透明度
+    QPointF m_cursorPos { -1000, -1000 };
+    qreal   m_glowAlpha { 0.0 };
     QMargins m_baseMargins;
 
 protected:
@@ -47,5 +47,5 @@ private:
     QColor  m_disabledColor;
     qreal   m_scale   { 1.0 };
     QPointF m_offset  { 0, 0 };
-    static constexpr int kMargin = 6; // 留白用于动画和浮动
+    static constexpr int kMargin = 6;
 };

@@ -54,7 +54,7 @@ void BeautyPushButton::setCheckedColor(const QColor &c)
 {
     m_checkedColor = c;
     if (isChecked()) {
-        m_bgColor = c;   // 如果当前就处于 checked 状态，立刻更新显示
+        m_bgColor = c;
         update();
     }
 }
@@ -63,7 +63,7 @@ void BeautyPushButton::setDisabledColor(const QColor &c)
 {
     m_disabledColor = c;
     if (!isEnabled()) {
-        setBgColor(c);           // 如果要渐变：animateColor(c);
+        setBgColor(c);
     }
 }
 
@@ -84,13 +84,11 @@ void BeautyPushButton::changeEvent(QEvent *event)
 }
 
 QSize BeautyPushButton::sizeHint() const {
-    // 给几何尺寸四周各多 6px 缓冲区（布局会按这个来放置）
     QSize s = QPushButton::sizeHint();
     return s + QSize(kMargin*2, kMargin*2);
 }
 
 QRectF BeautyPushButton::innerRect() const {
-    // 真正绘制按钮的区域（中间的小一圈），留出透明边
     return QRectF(rect()).adjusted(kMargin, kMargin, -kMargin, -kMargin);
 }
 
@@ -110,21 +108,17 @@ void BeautyPushButton::paintEvent(QPaintEvent *event)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
 
-    // 视觉浮动（只影响绘制，不动几何）
     p.translate(m_offset);
 
-    // 以内矩形中心做缩放
     const QRectF r = innerRect();
     p.translate(r.center());
     p.scale(m_scale, m_scale);
     p.translate(-r.center());
 
-    // 背景圆角
     p.setBrush(m_bgColor);
     p.setPen(Qt::NoPen);
     p.drawRoundedRect(r, 8, 8);
 
-    // 文本（白色，居中在内矩形）
     p.setPen(Qt::white);
     p.setFont(font());
     p.drawText(r, Qt::AlignCenter, text());
@@ -132,7 +126,6 @@ void BeautyPushButton::paintEvent(QPaintEvent *event)
 
 void BeautyPushButton::mouseMoveEvent(QMouseEvent *event)
 {
-    // 根据鼠标相对内矩形中心的偏移来计算视觉平移，最大不超过 kMargin-1，避免出界被裁
     const QPointF c = innerRect().center();
     const QPointF diff = event->pos() - c;
 
@@ -141,11 +134,11 @@ void BeautyPushButton::mouseMoveEvent(QMouseEvent *event)
 
     int offset = 2;
 
-    const qreal maxShift = qMax(1, offset); // 留一点安全边
+    const qreal maxShift = qMax(1, offset);
     const qreal dx = qBound(-maxShift, diff.x() / maxX * maxShift, maxShift);
     const qreal dy = qBound(-maxShift, diff.y() / maxY * maxShift, maxShift);
 
-    setOffset({dx, dy / 2}); // 触发重绘
+    setOffset({dx, dy / 2});
 
     QPushButton::mouseMoveEvent(event);
 }
@@ -167,7 +160,7 @@ void BeautyPushButton::enterEvent(QEnterEvent *event)
         auto *offsetAnim = new QPropertyAnimation(shadow, "offset");
         offsetAnim->setDuration(150);
         offsetAnim->setStartValue(shadow->offset());
-        offsetAnim->setEndValue(QPointF(0, 3)); //阴影下移多少
+        offsetAnim->setEndValue(QPointF(0, 3));
         offsetAnim->setEasingCurve(QEasingCurve::OutCubic);
         offsetAnim->start(QAbstractAnimation::DeleteWhenStopped);
     }
@@ -181,7 +174,6 @@ void BeautyPushButton::leaveEvent(QEvent *event)
         return;
     }
     animateScale(0.98);
-    // 视觉偏移回零（用属性动画）
     auto *back = new QPropertyAnimation(this, "offset");
     back->setDuration(180);
     back->setStartValue(m_offset);
@@ -199,7 +191,7 @@ void BeautyPushButton::leaveEvent(QEvent *event)
         auto *offsetAnim = new QPropertyAnimation(shadow, "offset");
         offsetAnim->setDuration(150);
         offsetAnim->setStartValue(shadow->offset());
-        offsetAnim->setEndValue(QPointF(0, 0)); // 回正
+        offsetAnim->setEndValue(QPointF(0, 0));
         offsetAnim->setEasingCurve(QEasingCurve::OutCubic);
         offsetAnim->start(QAbstractAnimation::DeleteWhenStopped);
     }
