@@ -3,6 +3,8 @@
 #include <QLineEdit>
 #include <QColor>
 #include <QPointF>
+#include <QRectF>
+#include <QSize>
 
 class BeautyLineEdit : public QLineEdit {
     Q_OBJECT
@@ -16,6 +18,7 @@ public:
 
     void setThemeColor(const QColor &c);
     void setDisabledColor(const QColor &c);
+    QSize sizeHint() const override;
 
 private:
     QColor  bgColor() const { return m_bgColor; }
@@ -26,7 +29,6 @@ private:
     void    setOffset(const QPointF &o);
     QPointF m_cursorPos { -1000, -1000 };
     qreal   m_glowAlpha { 0.0 };
-    QMargins m_baseMargins;
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -47,13 +49,17 @@ private:
             }
         }
 
+    QRectF innerRect() const;
+
 private:
     QColor  m_themeColor;
     QColor  m_bgColor;
     QColor  m_normalColor;
     QColor  m_activeColor;
     QColor  m_disabledColor;
-    qreal   m_scale   { 1.0 };
+    qreal   m_scale   { 0.5 };
     QPointF m_offset  { 0, 0 };
-    static constexpr int kMargin = 6;
+    static constexpr int kMargin = 5;
+    static constexpr qreal kRestScale = 0.98;
+    static constexpr qreal kFocusScale = 1.0;
 };

@@ -21,8 +21,7 @@ BeautyPushButton::BeautyPushButton(QWidget *parent)
     shadow->setOffset(0, 0);
     shadow->setColor(QColor(0, 0, 0, 100));
     setGraphicsEffect(shadow);
-    setScale(0.98);
-
+    setScale(0.99);
 
     connect(this, &QPushButton::toggled, this, [this](bool checked){
         if (checked) {
@@ -31,6 +30,7 @@ BeautyPushButton::BeautyPushButton(QWidget *parent)
             animateColor(m_normalColor);
         }
     });
+    setStyleSheet("QPushButton { border: 7px solid; border-radius: 8px; background: transparent; }");
 }
 
 void BeautyPushButton::setThemeColor(const QColor &base)
@@ -173,7 +173,7 @@ void BeautyPushButton::leaveEvent(QEvent *event)
         event->ignore();
         return;
     }
-    animateScale(0.98);
+    animateScale(0.99);
     auto *back = new QPropertyAnimation(this, "offset");
     back->setDuration(180);
     back->setStartValue(m_offset);

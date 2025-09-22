@@ -31,3 +31,7 @@
 *.out
 *.app
 .DS_Store
+*.idx
+/BeautyWidgetsDemo/build
+/build/.cmake
+/build

@@ -21,11 +21,13 @@ BeautyLineEdit::BeautyLineEdit(QWidget *parent)
     shadow->setColor(QColor(0,0,0,60));
     setGraphicsEffect(shadow);
     setFrame(false);
-    setStyleSheet("QLineEdit { background: transparent; }");
 
     setMinimumHeight(40);
-    setStyleSheet(QString("QLineEdit { background: transparent; padding-left: %1px; padding-right: %1px;}").arg(kMargin + 4));
+    setStyleSheet(QStringLiteral(
+        "QLineEdit { background: transparent; border: none; padding-left: %1px; padding-right: %1px; padding-top: 0px; padding-bottom: 0px; }")
+                      .arg(kMargin + 6 + width() * 0.01));
     setThemeColor("#228B22");
+    setScale(kRestScale);
 
 }
 
@@ -40,8 +42,8 @@ static QColor mixWithWhite(const QColor &c, qreal factor) {
 
 void BeautyLineEdit::setThemeColor(const QColor &c) {
     m_themeColor  = c;
-    m_normalColor = mixWithWhite(c, 0.94);
-    m_activeColor = mixWithWhite(c, 0.97);
+    m_normalColor = mixWithWhite(c, 0.96);
+    m_activeColor = mixWithWhite(c, 0.99);
     m_bgColor = isEnabled() ? m_normalColor : m_disabledColor;
     update();
 }
@@ -64,21 +66,26 @@ void BeautyLineEdit::setScale(qreal s) {
     update();
 }
 
+QSize BeautyLineEdit::sizeHint() const
+{
+    QSize base = QLineEdit::sizeHint();
+    return base + QSize(kMargin * 2, kMargin * 2);
+}
+
+QRectF BeautyLineEdit::innerRect() const
+{
+    return QRectF(rect()).adjusted(kMargin, kMargin, -kMargin, -kMargin);
+}
+
 void BeautyLineEdit::setOffset(const QPointF &o)
 {
-    if (qFuzzyCompare(m_offset.x(), o.x()) && qFuzzyCompare(m_offset.y(), o.y()))
+    const QPointF clamped(qBound(-3.0, o.x(), 3.0),
+                          qBound(-3.0, o.y(), 3.0));
+
+    if (qFuzzyCompare(m_offset.x(), clamped.x()) && qFuzzyCompare(m_offset.y(), clamped.y()))
         return;
 
-    m_offset = o;
-
-    const int dx = qBound(-3, qRound(o.x()), 3);
-    const int dy = qBound(-3, qRound(o.y()), 3);
-
-    setTextMargins(m_baseMargins.left() + dx,
-                   m_baseMargins.top()  + dy,
-                   m_baseMargins.right(),
-                   m_baseMargins.bottom());
-
+    m_offset = clamped;
     update();
 }
 
@@ -87,7 +94,7 @@ void BeautyLineEdit::paintEvent(QPaintEvent *event)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    const QRectF r = rect().adjusted(kMargin, kMargin, -kMargin, -kMargin);
+    const QRectF r = innerRect();
     const qreal radius = r.height() / 2.0;
 
     if (!hasFocus() && m_glowAlpha > 0.01 && m_cursorPos.x() > 0) {
@@ -112,12 +119,16 @@ void BeautyLineEdit::paintEvent(QPaintEvent *event)
     p.setPen(Qt::NoPen);
     p.drawRoundedRect(r, radius, radius);
 
-    const qreal outlineW = hasFocus() ? 2 : 1.2;
+    const qreal outlineW = hasFocus() ? 2 : 0.8;
     QPen outline(m_themeColor, outlineW);
     p.setBrush(Qt::NoBrush);
     p.setPen(outline);
     p.drawRoundedRect(r, radius, radius);
     p.restore();
+
+    setStyleSheet(QStringLiteral(
+                      "QLineEdit { background: transparent; border: none; padding-left: %1px; padding-right: %1px; padding-top: 0px; padding-bottom: 0px; }")
+                      .arg(kMargin + 6 + width() * 0.01));
 
     QLineEdit::paintEvent(event);
 }
@@ -125,7 +136,7 @@ void BeautyLineEdit::paintEvent(QPaintEvent *event)
 void BeautyLineEdit::focusInEvent(QFocusEvent *event)
 {
     animateColor(m_activeColor);
-    animateScale(1.0);
+    animateScale(kFocusScale);
 
     if (auto *shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect())) {
         auto *blur = new QPropertyAnimation(shadow, "blurRadius");
@@ -149,7 +160,7 @@ void BeautyLineEdit::focusInEvent(QFocusEvent *event)
 void BeautyLineEdit::focusOutEvent(QFocusEvent *event)
 {
     animateColor(m_normalColor);
-    animateScale(1.0);
+    animateScale(underMouse() ? kFocusScale : kRestScale);
 
     if (auto *shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect())) {
         auto *blur = new QPropertyAnimation(shadow, "blurRadius");
@@ -192,10 +203,13 @@ void BeautyLineEdit::mouseMoveEvent(QMouseEvent *event)
         const qreal maxX = rect().width()  / 2.0;
         const qreal maxY = rect().height() / 2.0;
 
-        qreal dx = qBound(-2.0, diff.x() / maxX * 2.0, 2.0);
-        qreal dy = qBound(-2.0, diff.y() / maxY * 2.0, 2.0);
+        int offset = 2;
 
-        setOffset({dx, dy / 4});
+        const qreal maxShift = qMax(1, offset);
+        const qreal dx = qBound(-maxShift, diff.x() / maxX * maxShift, maxShift);
+        const qreal dy = qBound(-maxShift, diff.y() / maxY * maxShift, maxShift);
+
+        setOffset({dx, dy / 2});
     } else {
         qreal minX = height() / 1.75;
         qreal maxX = width() - minX;
@@ -227,6 +241,7 @@ void BeautyLineEdit::mouseMoveEvent(QMouseEvent *event)
 void BeautyLineEdit::enterEvent(QEnterEvent *event)
 {
     if (!hasFocus()) {
+        animateScale(kFocusScale);
         m_cursorPos = event->position();  // Qt6 用 position()，Qt5 用 pos()
 
         auto *anim = new QPropertyAnimation(this, "glowAlpha");
@@ -254,6 +269,7 @@ void BeautyLineEdit::leaveEvent(QEvent *event)
         back->setEasingCurve(QEasingCurve::OutCubic);
         back->start(QAbstractAnimation::DeleteWhenStopped);
     }else{
+        animateScale(kRestScale);
         m_glowAlpha = 0.0;
         m_cursorPos = QPointF(-1000, -1000);
         update();
