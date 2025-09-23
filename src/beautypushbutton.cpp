@@ -21,7 +21,7 @@ BeautyPushButton::BeautyPushButton(QWidget *parent)
     shadow->setOffset(0, 0);
     shadow->setColor(QColor(0, 0, 0, 100));
     setGraphicsEffect(shadow);
-    setScale(0.99);
+    setScale(1);
 
     connect(this, &QPushButton::toggled, this, [this](bool checked){
         if (checked) {
@@ -149,7 +149,7 @@ void BeautyPushButton::enterEvent(QEnterEvent *event)
         event->ignore();
         return;
     }
-    animateScale(1.0);
+    animateScale(1.01);
     if (auto *shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect())) {
         auto *blur = new QPropertyAnimation(shadow, "blurRadius");
         blur->setDuration(150);
@@ -173,7 +173,7 @@ void BeautyPushButton::leaveEvent(QEvent *event)
         event->ignore();
         return;
     }
-    animateScale(0.99);
+    animateScale(1);
     auto *back = new QPropertyAnimation(this, "offset");
     back->setDuration(180);
     back->setStartValue(m_offset);
