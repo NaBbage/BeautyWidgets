@@ -13,12 +13,15 @@ public:
     explicit BeautyPushButton(QWidget *parent = nullptr);
 
     void setThemeColor(const QColor &base);
+    void setNormalColor(const QColor &c);
+    void setPressedColor(const QColor &c);
     void setCheckedColor(const QColor &c);
     void setDisabledColor(const QColor &c);
-
-private:
+    void setTextColor(const QColor &c);
     QColor  bgColor() const { return m_bgColor; }
     void    setBgColor(const QColor &c);
+
+private:
     qreal   scale()  const { return m_scale; }
     void    setScale(qreal s);
     QPointF offset() const { return m_offset; }
@@ -42,7 +45,7 @@ private:
     QRectF innerRect() const;
 
 private:
-    QColor defaultColor { "#006400" };
+    QColor defaultColor { "#003494" };
     QColor defaultPressedColor { defaultColor.darker(120) };
     QColor defaultCheckedColor { defaultColor.darker(190) };
     QColor defaultDisabledColor { "#808080" };
@@ -55,5 +58,6 @@ private:
     QColor m_pressedColor{ defaultPressedColor };
     QColor m_checkedColor{ defaultCheckedColor };
     QColor m_disabledColor{ defaultDisabledColor };
+    QColor m_textColor{ Qt::white };
     static constexpr int kMargin = 6;
 };

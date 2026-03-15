@@ -47,6 +47,32 @@ void BeautyPushButton::setThemeColor(const QColor &base)
         target = m_normalColor;
     }
     animateColor(target);
+    if (!qFuzzyIsNull(m_offset.x()) || !qFuzzyIsNull(m_offset.y())) {
+        auto *back = new QPropertyAnimation(this, "offset", this);
+        back->setDuration(180);
+        back->setStartValue(m_offset);
+        back->setEndValue(QPointF(0, 0));
+        back->setEasingCurve(QEasingCurve::OutCubic);
+        back->start(QAbstractAnimation::DeleteWhenStopped);
+    }
+    update();
+}
+
+void BeautyPushButton::setNormalColor(const QColor &c)
+{
+    m_normalColor = c;
+    if (isEnabled() && !(isCheckable() && isChecked()) && !isDown()) {
+        animateColor(m_normalColor);
+    }
+    update();
+}
+
+void BeautyPushButton::setPressedColor(const QColor &c)
+{
+    m_pressedColor = c;
+    if (isEnabled() && isDown()) {
+        setBgColor(m_pressedColor);
+    }
     update();
 }
 
@@ -54,7 +80,7 @@ void BeautyPushButton::setCheckedColor(const QColor &c)
 {
     m_checkedColor = c;
     if (isChecked()) {
-        m_bgColor = c;
+        setBgColor(c);
         update();
     }
 }
@@ -67,14 +93,32 @@ void BeautyPushButton::setDisabledColor(const QColor &c)
     }
 }
 
+void BeautyPushButton::setTextColor(const QColor &c)
+{
+    m_textColor = c;
+    update();
+}
+
 void BeautyPushButton::changeEvent(QEvent *event)
 {
     QPushButton::changeEvent(event);
     if (event->type() == QEvent::EnabledChange) {
         if (!isEnabled()) {
+            const auto anims = findChildren<QAbstractAnimation*>();
+            for (auto *a : anims) {
+                if (a) a->stop();
+            }
+            setCursor(Qt::ArrowCursor);
+            setOffset(QPointF(0, 0));
+            setScale(1.0);
             setBgColor(m_disabledColor);
+            if (auto *shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect())) {
+                shadow->setBlurRadius(0);
+                shadow->setOffset(0, 0);
+            }
             return;
         }
+        setCursor(Qt::PointingHandCursor);
         if (isCheckable() && isChecked()) {
             animateColor(m_checkedColor);
         } else {
@@ -119,13 +163,21 @@ void BeautyPushButton::paintEvent(QPaintEvent *event)
     p.setPen(Qt::NoPen);
     p.drawRoundedRect(r, 8, 8);
 
-    p.setPen(Qt::white);
+    QColor textColor = m_textColor;
+    if (!isEnabled()) {
+        textColor.setAlphaF(qBound(0.0, textColor.alphaF() * 0.6, 1.0));
+    }
+    p.setPen(textColor);
     p.setFont(font());
     p.drawText(r, Qt::AlignCenter, text());
 }
 
 void BeautyPushButton::mouseMoveEvent(QMouseEvent *event)
 {
+    if (!isEnabled()) {
+        event->ignore();
+        return;
+    }
     const QPointF c = innerRect().center();
     const QPointF diff = event->pos() - c;
 
@@ -201,6 +253,10 @@ void BeautyPushButton::leaveEvent(QEvent *event)
 
 void BeautyPushButton::mousePressEvent(QMouseEvent *event)
 {
+    if (!isEnabled()) {
+        event->ignore();
+        return;
+    }
     animateColor(QColor(m_pressedColor));
     animateScale(0.95);
 

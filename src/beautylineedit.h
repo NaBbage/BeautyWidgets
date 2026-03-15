@@ -11,13 +11,13 @@ class BeautyLineEdit : public QLineEdit {
     Q_PROPERTY(QColor  bgColor READ bgColor WRITE setBgColor)
     Q_PROPERTY(qreal   scale   READ scale   WRITE setScale)
     Q_PROPERTY(QPointF offset  READ offset  WRITE setOffset)
-    Q_PROPERTY(qreal glowAlpha READ glowAlpha WRITE setGlowAlpha)
 
 public:
     explicit BeautyLineEdit(QWidget *parent = nullptr);
 
     void setThemeColor(const QColor &c);
     void setDisabledColor(const QColor &c);
+    void setTextColor(const QColor &c);
     QSize sizeHint() const override;
 
 private:
@@ -27,10 +27,9 @@ private:
     void    setScale(qreal s);
     QPointF offset() const { return m_offset; }
     void    setOffset(const QPointF &o);
-    QPointF m_cursorPos { -1000, -1000 };
-    qreal   m_glowAlpha { 0.0 };
 
 protected:
+    void changeEvent(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     void focusInEvent(QFocusEvent *event) override;
     void focusOutEvent(QFocusEvent *event) override;
@@ -41,13 +40,6 @@ protected:
 private:
     void animateColor(const QColor &to);
     void animateScale(qreal to);
-    qreal glowAlpha() const { return m_glowAlpha; }
-        void setGlowAlpha(qreal alpha) {
-            if (!qFuzzyCompare(m_glowAlpha, alpha)) {
-                m_glowAlpha = alpha;
-                update();
-            }
-        }
 
     QRectF innerRect() const;
 
@@ -56,9 +48,10 @@ private:
     QColor  m_bgColor;
     QColor  m_normalColor;
     QColor  m_activeColor;
-    QColor  m_disabledColor;
+    QColor  m_disabledColor { QColor("#eaeaea") };
     qreal   m_scale   { 0.5 };
     QPointF m_offset  { 0, 0 };
+    Qt::FocusPolicy m_savedFocusPolicy { Qt::StrongFocus };
     static constexpr int kMargin = 5;
     static constexpr qreal kRestScale = 0.98;
     static constexpr qreal kFocusScale = 1.0;
