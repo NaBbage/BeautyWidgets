@@ -29,6 +29,7 @@ BeautyPushButton::BeautyPushButton(QWidget *parent)
         } else {
             animateColor(m_normalColor);
         }
+        syncShadowState();
     });
     setStyleSheet("QPushButton { border: 7px solid; border-radius: 8px; background: transparent; }");
 }
@@ -99,6 +100,60 @@ void BeautyPushButton::setTextColor(const QColor &c)
     update();
 }
 
+void BeautyPushButton::setFloatingOnChecked(bool enabled)
+{
+    if (m_floatingOnChecked == enabled) {
+        return;
+    }
+
+    m_floatingOnChecked = enabled;
+    if (shouldKeepFloating()) {
+        animateScale(1.0);
+    }
+    syncShadowState();
+}
+
+void BeautyPushButton::setBorderEnabled(bool enabled)
+{
+    if (m_borderEnabled == enabled) {
+        return;
+    }
+
+    m_borderEnabled = enabled;
+    update();
+}
+
+void BeautyPushButton::setBorderColor(const QColor &c)
+{
+    if (m_borderColor == c) {
+        return;
+    }
+
+    m_borderColor = c;
+    update();
+}
+
+void BeautyPushButton::setBorderWidth(qreal width)
+{
+    const qreal clampedWidth = qMax<qreal>(0.0, width);
+    if (qFuzzyCompare(m_borderWidth, clampedWidth)) {
+        return;
+    }
+
+    m_borderWidth = clampedWidth;
+    update();
+}
+
+void BeautyPushButton::setTextAlignment(Qt::Alignment alignment)
+{
+    if (m_textAlignment == alignment) {
+        return;
+    }
+
+    m_textAlignment = alignment;
+    update();
+}
+
 void BeautyPushButton::changeEvent(QEvent *event)
 {
     QPushButton::changeEvent(event);
@@ -124,6 +179,7 @@ void BeautyPushButton::changeEvent(QEvent *event)
         } else {
             animateColor(m_normalColor);
         }
+        syncShadowState();
     }
 }
 
@@ -163,13 +219,27 @@ void BeautyPushButton::paintEvent(QPaintEvent *event)
     p.setPen(Qt::NoPen);
     p.drawRoundedRect(r, 8, 8);
 
+    if (m_borderEnabled && m_borderWidth > 0.0) {
+        QColor borderColor = m_borderColor;
+        if (!isEnabled()) {
+            borderColor.setAlphaF(qBound(0.0, borderColor.alphaF() * 0.6, 1.0));
+        }
+
+        QPen borderPen(borderColor, m_borderWidth);
+        p.setBrush(Qt::NoBrush);
+        p.setPen(borderPen);
+        const qreal halfBorderWidth = m_borderWidth / 2.0;
+        p.drawRoundedRect(r.adjusted(halfBorderWidth, halfBorderWidth,
+                                     -halfBorderWidth, -halfBorderWidth), 8, 8);
+    }
+
     QColor textColor = m_textColor;
     if (!isEnabled()) {
         textColor.setAlphaF(qBound(0.0, textColor.alphaF() * 0.6, 1.0));
     }
     p.setPen(textColor);
     p.setFont(font());
-    p.drawText(r, Qt::AlignCenter, text());
+    p.drawText(r, m_textAlignment, text());
 }
 
 void BeautyPushButton::mouseMoveEvent(QMouseEvent *event)
@@ -201,21 +271,8 @@ void BeautyPushButton::enterEvent(QEnterEvent *event)
         event->ignore();
         return;
     }
-    animateScale(1.01);
-    if (auto *shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect())) {
-        auto *blur = new QPropertyAnimation(shadow, "blurRadius");
-        blur->setDuration(150);
-        blur->setStartValue(shadow->blurRadius());
-        blur->setEndValue(30);
-        blur->setEasingCurve(QEasingCurve::OutCubic);
-        blur->start(QAbstractAnimation::DeleteWhenStopped);
-        auto *offsetAnim = new QPropertyAnimation(shadow, "offset");
-        offsetAnim->setDuration(150);
-        offsetAnim->setStartValue(shadow->offset());
-        offsetAnim->setEndValue(QPointF(0, 3));
-        offsetAnim->setEasingCurve(QEasingCurve::OutCubic);
-        offsetAnim->start(QAbstractAnimation::DeleteWhenStopped);
-    }
+    animateScale(shouldKeepFloating() ? 1.0 : 1.01);
+    syncShadowState();
     QPushButton::enterEvent(event);
 }
 
@@ -233,20 +290,7 @@ void BeautyPushButton::leaveEvent(QEvent *event)
     back->setEasingCurve(QEasingCurve::OutCubic);
     back->start(QAbstractAnimation::DeleteWhenStopped);
 
-    if (auto *shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect())) {
-        auto *blur = new QPropertyAnimation(shadow, "blurRadius");
-        blur->setDuration(150);
-        blur->setStartValue(shadow->blurRadius());
-        blur->setEndValue(0);
-        blur->setEasingCurve(QEasingCurve::OutCubic);
-        blur->start(QAbstractAnimation::DeleteWhenStopped);
-        auto *offsetAnim = new QPropertyAnimation(shadow, "offset");
-        offsetAnim->setDuration(150);
-        offsetAnim->setStartValue(shadow->offset());
-        offsetAnim->setEndValue(QPointF(0, 0));
-        offsetAnim->setEasingCurve(QEasingCurve::OutCubic);
-        offsetAnim->start(QAbstractAnimation::DeleteWhenStopped);
-    }
+    syncShadowState();
 
     QPushButton::leaveEvent(event);
 }
@@ -269,14 +313,14 @@ void BeautyPushButton::mouseReleaseEvent(QMouseEvent *event)
         event->ignore();
         return;
     }
-    animateColor(QColor(m_normalColor));
+    QPushButton::mouseReleaseEvent(event);
     animateScale(1.0);
     if (isCheckable() && isChecked()) {
         animateColor(m_checkedColor);
     } else {
         animateColor(m_normalColor);
     }
-    QPushButton::mouseReleaseEvent(event);
+    syncShadowState();
 }
 
 bool BeautyPushButton::hitButton(const QPoint &pos) const
@@ -304,4 +348,37 @@ void BeautyPushButton::animateScale(qreal to)
     anim->setEndValue(to);
     anim->setEasingCurve(QEasingCurve::OutCubic);
     anim->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
+void BeautyPushButton::animateShadow(qreal blurRadius, const QPointF &offset)
+{
+    auto *shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect());
+    if (!shadow) {
+        return;
+    }
+
+    auto *blur = new QPropertyAnimation(shadow, "blurRadius");
+    blur->setDuration(150);
+    blur->setStartValue(shadow->blurRadius());
+    blur->setEndValue(blurRadius);
+    blur->setEasingCurve(QEasingCurve::OutCubic);
+    blur->start(QAbstractAnimation::DeleteWhenStopped);
+
+    auto *offsetAnim = new QPropertyAnimation(shadow, "offset");
+    offsetAnim->setDuration(150);
+    offsetAnim->setStartValue(shadow->offset());
+    offsetAnim->setEndValue(offset);
+    offsetAnim->setEasingCurve(QEasingCurve::OutCubic);
+    offsetAnim->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
+void BeautyPushButton::syncShadowState()
+{
+    const bool shouldFloat = isEnabled() && (underMouse() || shouldKeepFloating());
+    animateShadow(shouldFloat ? 30.0 : 0.0, shouldFloat ? QPointF(0, 3) : QPointF(0, 0));
+}
+
+bool BeautyPushButton::shouldKeepFloating() const
+{
+    return m_floatingOnChecked && isCheckable() && isChecked();
 }
